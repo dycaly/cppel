@@ -11,6 +11,6 @@ FetchContent_MakeAvailable(json)
 
 
 
-add_executable(main main.cpp el/tokenizer.hpp)
+add_executable(main main.cpp include/tokenizer.hpp)
 
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)

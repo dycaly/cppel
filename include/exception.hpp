@@ -19,6 +19,11 @@ struct TokenError : public CppelError {
       : CppelError("token_error", message) {}
 };
 
+struct ParseError : public CppelError {
+  explicit ParseError(const std::string& message)
+      : CppelError("parse_error", message) {}
+};
+
 #define CPPEL_THROW(exception) throw exception
 
 }  // namespace cppel

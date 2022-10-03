@@ -10,6 +10,7 @@ namespace cppel {
 class Token {
  public:
   enum class Kind {
+    LITERAL_BOOL,    // bool
     LITERAL_INT,     // int
     LITERAL_FLOAT,   // float
     LITERAL_STRING,  // string
@@ -37,8 +38,8 @@ class Token {
     EQ,              // ==
     NE,              // !=
     NOT,             // !
-    SYMBOLIC_OR,     // ||
-    SYMBOLIC_AND,    // &&
+    AND,             // &&
+    OR,              // ||
     SELECT,          // ?[
     SELECT_FIRST,    // ^[
     SELECT_LAST,     // $[
@@ -60,12 +61,16 @@ class Token {
       : kind_(other.kind_),
         start_pos_(other.start_pos_),
         end_pos_(other.end_pos_) {}
+
+  bool is_numeric_relation_operator() {
+    return kind_ == Kind::GT || kind_ == Kind::GE || kind_ == Kind::LT || kind_ == Kind::LE || kind_ == Kind::EQ || kind_ == Kind::NE;
+  }
 };
 
 class Tokenizer {
  public:
-  Tokenizer(const std::string &expr_str) {
-    for(char ch : expr_str) {
+  Tokenizer(const std::string &expr_str) : expr_str_(expr_str) {
+    for (char ch : expr_str) {
       expr_chars_.push_back(ch);
     }
     expr_chars_.push_back('\0');
@@ -88,6 +93,7 @@ class Tokenizer {
   }
 
  private:
+  std::string expr_str_;
   std::vector<char> expr_chars_;
   size_t pos_;
   size_t size_;
@@ -107,41 +113,29 @@ class Tokenizer {
         ++pos_;
       } else {
         switch (expr_chars_[pos_]) {
-          case '\'':
-            lex_quoted_string_literal();
+          case '\'':lex_quoted_string_literal();
             break;
-          case '"':
-            lex_double_quoted_string_literal();
+          case '"':lex_double_quoted_string_literal();
             break;
-          case '_':
-            lex_identifier();
+          case '_':lex_identifier();
             break;
-          case '(':
-            enqueue_token(Token::Kind::LPAREN, 1);
+          case '(':enqueue_token(Token::Kind::LPAREN, 1);
             break;
-          case ')':
-            enqueue_token(Token::Kind::RPAREN, 1);
+          case ')':enqueue_token(Token::Kind::RPAREN, 1);
             break;
-          case '[':
-            enqueue_token(Token::Kind::LSQUARE, 1);
+          case '[':enqueue_token(Token::Kind::LSQUARE, 1);
             break;
-          case ']':
-            enqueue_token(Token::Kind::RSQUARE, 1);
+          case ']':enqueue_token(Token::Kind::RSQUARE, 1);
             break;
-          case '{':
-            enqueue_token(Token::Kind::LCURLY, 1);
+          case '{':enqueue_token(Token::Kind::LCURLY, 1);
             break;
-          case '}':
-            enqueue_token(Token::Kind::RCURLY, 1);
+          case '}':enqueue_token(Token::Kind::RCURLY, 1);
             break;
-          case '+':
-            enqueue_token(Token::Kind::PLUS, 1);
+          case '+':enqueue_token(Token::Kind::PLUS, 1);
             break;
-          case '-':
-            enqueue_token(Token::Kind::MINUS, 1);
+          case '-':enqueue_token(Token::Kind::MINUS, 1);
             break;
-          case '*':
-            enqueue_token(Token::Kind::STAR, 1);
+          case '*':enqueue_token(Token::Kind::STAR, 1);
             break;
           case '^':
             if (expr_chars_[pos_ + 1] == '[') {
@@ -150,20 +144,15 @@ class Tokenizer {
               enqueue_token(Token::Kind::POWER, 1);
             }
             break;
-          case '/':
-            enqueue_token(Token::Kind::DIV, 1);
+          case '/':enqueue_token(Token::Kind::DIV, 1);
             break;
-          case '%':
-            enqueue_token(Token::Kind::MOD, 1);
+          case '%':enqueue_token(Token::Kind::MOD, 1);
             break;
-          case ':':
-            enqueue_token(Token::Kind::COLON, 1);
+          case ':':enqueue_token(Token::Kind::COLON, 1);
             break;
-          case '.':
-            enqueue_token(Token::Kind::DOT, 1);
+          case '.':enqueue_token(Token::Kind::DOT, 1);
             break;
-          case ',':
-            enqueue_token(Token::Kind::COMMA, 1);
+          case ',':enqueue_token(Token::Kind::COMMA, 1);
             break;
           case '?':
             if (expr_chars_[pos_ + 1] == '[') {
@@ -208,14 +197,14 @@ class Tokenizer {
             break;
           case '|':
             if (expr_chars_[pos_ + 1] == '|') {
-              enqueue_token(Token::Kind::SYMBOLIC_OR, 2);
+              enqueue_token(Token::Kind::OR, 2);
             } else {
               throw_unexcept_char();
             }
             break;
           case '&':
             if (expr_chars_[pos_ + 1] == '&') {
-              enqueue_token(Token::Kind::SYMBOLIC_AND, 2);
+              enqueue_token(Token::Kind::AND, 2);
             } else {
               throw_unexcept_char();
             }
@@ -227,11 +216,9 @@ class Tokenizer {
               throw_unexcept_char();
             }
             break;
-          case '\0':
-            enqueue_token(Token::Kind::END, 1);
+          case '\0':enqueue_token(Token::Kind::END, 1);
             break;
-          default:
-            throw_unexcept_char();
+          default:throw_unexcept_char();
             break;
         }
       }
@@ -241,7 +228,18 @@ class Tokenizer {
   void lex_identifier() {
     size_t start = pos_;
     while (is_identifier_char(expr_chars_[pos_])) ++pos_;
-    token_queue_.emplace(Token::Kind::IDENTIFIER, start, pos_);
+    std::string identifier = expr_str_.substr(start, pos_ - start);
+    if (identifier == "true" || identifier == "false") {
+      token_queue_.emplace(Token::Kind::LITERAL_BOOL, start, pos_);
+    } else if (identifier == "not") {
+      token_queue_.emplace(Token::Kind::NOT, start, pos_);
+    } else if (identifier == "and") {
+      token_queue_.emplace(Token::Kind::AND, start, pos_);
+    } else if (identifier == "or") {
+      token_queue_.emplace(Token::Kind::OR, start, pos_);
+    } else {
+      token_queue_.emplace(Token::Kind::IDENTIFIER, start, pos_);
+    }
   }
 
   bool is_identifier_char(char ch) {
@@ -284,7 +282,7 @@ class Tokenizer {
 
   void throw_unexcept_char() {
     CPPEL_THROW("Unexcept char '" + std::to_string(expr_chars_[pos_]) +
-                "' at pos " + std::to_string(pos_));
+        "' at pos " + std::to_string(pos_));
   }
 };
 
