@@ -45,6 +45,7 @@ class Token {
     PROJECT,         // ![
     ELVIS,           // ?:
     SAFE_NAVI,       // ?.
+    ASSIGN,          // =
     END,             // \0
   };
 
@@ -72,7 +73,7 @@ class Tokenizer {
     size_ = expr_chars_.size();
   }
 
-  Token peek_token() {
+  Token &peek_token() {
     scan_token();
     return token_queue_.front();
   }
@@ -80,7 +81,9 @@ class Tokenizer {
   Token next_token() {
     scan_token();
     Token token = token_queue_.front();
-    token_queue_.pop();
+    if (token.kind_ != Token::Kind::END) {
+      token_queue_.pop();
+    }
     return token;
   }
 
@@ -191,7 +194,7 @@ class Tokenizer {
             if (expr_chars_[pos_ + 1] == '=') {
               enqueue_token(Token::Kind::EQ, 2);
             } else {
-              throw_unexcept_char();
+              enqueue_token(Token::Kind::ASSIGN, 1);
             }
             break;
           case '!':

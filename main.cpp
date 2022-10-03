@@ -1,7 +1,10 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "./el/token.hpp"
+#include <nlohmann/json.hpp>
+#include "./el/tokenizer.hpp"
+
+using json = nlohmann::json;
 
 int main() {
   std::cout << "====start====" << std::endl;
@@ -14,6 +17,8 @@ int main() {
   {
     tokens.push_back(tokenizer.next_token());
   }
+
+  json j = "{}"_json;
   
 
   return 0;

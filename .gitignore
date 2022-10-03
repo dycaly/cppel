@@ -44,3 +44,7 @@ doc/latex
 __pycache__
 
 examples
+
+# idea
+.idea
+cmake-build-debug
