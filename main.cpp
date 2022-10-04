@@ -17,6 +17,6 @@ int main() {
 
   std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
 
-  std::cout << rlt.get()->dump() << std::endl;
+  std::cout << rlt->dump() << std::endl;
   return 0;
 }

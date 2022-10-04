@@ -14,5 +14,5 @@ cppel::Expression expr = parser.parse(expr_str);
 
 std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
 
-std::cout << rlt.get()->dump() << std::endl; // ["Jack","Rose"]
+std::cout << rlt->dump() << std::endl; // ["Jack","Rose"]
 ```
