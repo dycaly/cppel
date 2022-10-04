@@ -1,7 +1,7 @@
-### What's this
+### What's this?
 a simple c++ implement of spring expression
 
-### How to use
+### How to use?
 ```c++
 #include <iostream>
 #include <nlohmann/json.hpp>
