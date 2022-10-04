@@ -1,5 +1,5 @@
 ### What's this?
-a simple c++ implement of spring expression
+a simple c++ implementation of spring expression
 
 ### How to use?
 ```c++
