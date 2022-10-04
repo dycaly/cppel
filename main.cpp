@@ -1,8 +1,7 @@
-#include <string>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include "./include/expression.hpp"
-#include "./include/parser.hpp"
+#include "include/expression.hpp"
+#include "include/parser.hpp"
 
 int main() {
 
