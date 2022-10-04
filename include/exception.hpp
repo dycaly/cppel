@@ -24,6 +24,11 @@ struct ParseError : public CppelError {
       : CppelError("parse_error", message) {}
 };
 
+struct EvaluateError : public CppelError {
+  explicit EvaluateError(const std::string& message)
+      : CppelError("evaluate_error", message) {}
+};
+
 #define CPPEL_THROW(exception) throw exception
 
 }  // namespace cppel

@@ -1,25 +1,22 @@
 #include <string>
-#include <vector>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include "./el/tokenizer.hpp"
-
-using json = nlohmann::json;
+#include "./include/expression.hpp"
+#include "./include/parser.hpp"
 
 int main() {
-  std::cout << "====start====" << std::endl;
 
-  cppel::Tokenizer tokenizer("(('你好' + ' ') + 'world')");
+  using json = nlohmann::json;
+  json data = "{\"names\": \"Jack,Rose\"}"_json;
 
-  std::vector<cppel::Token> tokens;
+  cppel::EvaluationContext evaluation_context(data);
+  std::string expr_str = "#split(names, ',')";
 
-  while (tokenizer.peek_token().kind_ != cppel::Token::Kind::END)
-  {
-    tokens.push_back(tokenizer.next_token());
-  }
+  cppel::Parser parser;
+  cppel::Expression expr = parser.parse(expr_str);
 
-  json j = "{}"_json;
-  
+  std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
 
+  std::cout << rlt.get()->dump() << std::endl;
   return 0;
 }

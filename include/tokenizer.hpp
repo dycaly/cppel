@@ -23,6 +23,7 @@ class Token {
     RCURLY,          // }
     COMMA,           // ,
     COLON,           // :
+    HASH,            // #
     DOT,             // .
     PLUS,            // +
     MINUS,           // -
@@ -149,6 +150,8 @@ class Tokenizer {
           case '%':enqueue_token(Token::Kind::MOD, 1);
             break;
           case ':':enqueue_token(Token::Kind::COLON, 1);
+            break;
+          case '#':enqueue_token(Token::Kind::HASH, 1);
             break;
           case '.':enqueue_token(Token::Kind::DOT, 1);
             break;

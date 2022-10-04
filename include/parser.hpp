@@ -250,7 +250,10 @@ class InternalParser {
     if (maybe_eat_paren_expression()) {
       return pop_node();
     }
-    if (maybe_eat_function_or_property(false)) {
+    if (maybe_eat_function_or_variable()) {
+      return pop_node();
+    }
+    if (maybe_eat_method_or_property(false)) {
       return pop_node();
     }
     if (maybe_eat_projection(false)) {
@@ -308,7 +311,7 @@ class InternalParser {
       push_node(std::make_shared<LiteralString>(token.start_pos_,
                                                 token.end_pos_,
                                                 expr_str_.substr(token.start_pos_ + 1,
-                                                                 token.end_pos_ - token.start_pos_ - 1)));
+                                                                 token.end_pos_ - token.start_pos_ - 2)));
     } else {
       return false;
     }
@@ -331,18 +334,40 @@ class InternalParser {
     return true;
   }
 
-  bool maybe_eat_function_or_property(bool save_navi) {
+  bool maybe_eat_method_or_property(bool save_navi) {
     if (peek_token().kind_ != Token::Kind::IDENTIFIER) {
       return false;
     }
 
     Token token = next_token();
     std::string name = expr_str_.substr(token.start_pos_, token.end_pos_ - token.start_pos_);
+
     std::vector<std::shared_ptr<AstNode>> args;
-    if (maybe_eat_method_args(args)) {
-      push_node(std::make_shared<FunctionNode>(token.start_pos_, token.end_pos_, name, args));
+    if (maybe_eat_method_or_function_args(args)) {
+      push_node(std::make_shared<MethodNode>(token.start_pos_, token.end_pos_, save_navi, name, args));
     } else {
       push_node(std::make_shared<PropertyNode>(token.start_pos_, token.end_pos_, save_navi, name));
+    }
+    return true;
+  }
+
+  bool maybe_eat_function_or_variable() {
+    if (peek_token().kind_ != Token::Kind::HASH) {
+      return false;
+    }
+    next_token();
+    if (peek_token().kind_ != Token::Kind::IDENTIFIER) {
+      CPPEL_THROW(ParseError("unexpected token at " + peek_token().start_pos_));
+    }
+
+    Token token = next_token();
+    std::string name = expr_str_.substr(token.start_pos_, token.end_pos_ - token.start_pos_);
+
+    std::vector<std::shared_ptr<AstNode>> args;
+    if (maybe_eat_method_or_function_args(args)) {
+      push_node(std::make_shared<FunctionNode>(token.start_pos_, token.end_pos_, name, args));
+    } else {
+      push_node(std::make_shared<VariableNode>(token.start_pos_, token.end_pos_, name));
     }
     return true;
   }
@@ -358,7 +383,7 @@ class InternalParser {
     return true;
   }
 
-  bool maybe_eat_method_args(std::vector<std::shared_ptr<AstNode>> &args) {
+  bool maybe_eat_method_or_function_args(std::vector<std::shared_ptr<AstNode>> &args) {
     if (peek_token().kind_ != Token::Kind::LPAREN) {
       return false;
     }
