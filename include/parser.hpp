@@ -250,7 +250,7 @@ class InternalParser {
     if (maybe_eat_paren_expression()) {
       return pop_node();
     }
-    if (maybe_eat_method_or_property(false)) {
+    if (maybe_eat_function_or_property(false)) {
       return pop_node();
     }
     if (maybe_eat_projection(false)) {
@@ -331,7 +331,7 @@ class InternalParser {
     return true;
   }
 
-  bool maybe_eat_method_or_property(bool save_navi) {
+  bool maybe_eat_function_or_property(bool save_navi) {
     if (peek_token().kind_ != Token::Kind::IDENTIFIER) {
       return false;
     }
@@ -340,10 +340,21 @@ class InternalParser {
     std::string name = expr_str_.substr(token.start_pos_, token.end_pos_ - token.start_pos_);
     std::vector<std::shared_ptr<AstNode>> args;
     if (maybe_eat_method_args(args)) {
-      push_node(std::make_shared<FunctionNode>(token.start_pos_, token.end_pos_, save_navi, name, args));
+      push_node(std::make_shared<FunctionNode>(token.start_pos_, token.end_pos_, name, args));
     } else {
       push_node(std::make_shared<PropertyNode>(token.start_pos_, token.end_pos_, save_navi, name));
     }
+    return true;
+  }
+
+  bool maybe_eat_property(bool save_navi) {
+    if (peek_token().kind_ != Token::Kind::IDENTIFIER) {
+      return false;
+    }
+
+    Token token = next_token();
+    std::string name = expr_str_.substr(token.start_pos_, token.end_pos_ - token.start_pos_);
+    push_node(std::make_shared<PropertyNode>(token.start_pos_, token.end_pos_, save_navi, name));
     return true;
   }
 
@@ -506,7 +517,7 @@ class InternalParser {
   std::shared_ptr<AstNode> eat_dotted_node() {
     Token token = next_token();
     bool safe_navi = token.kind_ == Token::Kind::SAFE_NAVI;
-    if (maybe_eat_method_or_property(safe_navi) || maybe_eat_projection(safe_navi) || maybe_eat_selection(safe_navi)) {
+    if (maybe_eat_property(safe_navi) || maybe_eat_projection(safe_navi) || maybe_eat_selection(safe_navi)) {
       return pop_node();
     }
     CPPEL_THROW(ParseError("unexpected token after " + peek_token().start_pos_));

@@ -294,13 +294,11 @@ class FunctionNode : public AstNode {
  public:
   FunctionNode(const size_t start_pos,
                const size_t end_pos,
-               const bool null_safe,
-               const std::string &method_name,
+               const std::string &function_name,
                const std::vector<std::shared_ptr<AstNode>> exprs) :
-      AstNode(start_pos, end_pos), null_safe_(null_safe), method_name_(method_name), exprs_(exprs) {}
+      AstNode(start_pos, end_pos), function_name_(function_name), exprs_(exprs) {}
  private:
-  bool null_safe_;
-  std::string method_name_;
+  std::string function_name_;
   std::vector<std::shared_ptr<AstNode>> exprs_;
 };
 
@@ -309,11 +307,11 @@ class PropertyNode : public AstNode {
   PropertyNode(const size_t start_pos,
                const size_t end_pos,
                const bool null_safe,
-               const std::string &variable_name) :
-      AstNode(start_pos, end_pos), null_safe_(null_safe), variable_name_(variable_name) {}
+               const std::string &property_name) :
+      AstNode(start_pos, end_pos), null_safe_(null_safe), property_name_(property_name) {}
  private:
   bool null_safe_;
-  std::string variable_name_;
+  std::string property_name_;
 };
 
 class Projection : public AstNode {
