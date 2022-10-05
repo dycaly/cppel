@@ -64,7 +64,8 @@ class Token {
         end_pos_(other.end_pos_) {}
 
   bool is_numeric_relation_operator() {
-    return kind_ == Kind::GT || kind_ == Kind::GE || kind_ == Kind::LT || kind_ == Kind::LE || kind_ == Kind::EQ || kind_ == Kind::NE;
+    return kind_ == Kind::GT || kind_ == Kind::GE || kind_ == Kind::LT || kind_ == Kind::LE || kind_ == Kind::EQ
+        || kind_ == Kind::NE;
   }
 };
 

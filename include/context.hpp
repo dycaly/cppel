@@ -42,7 +42,9 @@ class EvaluationContext {
     if (functions_.find(name_args_count) != functions_.end()) {
       return functions_[name_args_count];
     }
-    CPPEL_THROW(EvaluateError("function [" + name_args_count.first + "] with args_count " + std::to_string(name_args_count.second) +" not exits"));
+    CPPEL_THROW(EvaluateError(
+        "function [" + name_args_count.first + "] with args_count " + std::to_string(name_args_count.second)
+            + " not exits"));
   }
 
  private:

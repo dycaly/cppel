@@ -30,7 +30,8 @@ class PresetFunction {
     int src_l = 0, src_r = 0;
     while (src_r < source_str.size()) {
       int spl_i = 0;
-      while (src_r + spl_i <source_str.size() && spl_i < splitter.size() && source_str[src_r] == splitter[spl_i]) ++spl_i;
+      while (src_r + spl_i < source_str.size() && spl_i < splitter.size() && source_str[src_r] == splitter[spl_i])
+        ++spl_i;
       if (spl_i == splitter.size()) {
         result->push_back(source_str.substr(src_l, src_r - src_l));
         src_r += spl_i;
