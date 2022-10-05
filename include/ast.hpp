@@ -483,7 +483,7 @@ class VariableNode : public AstNode {
       AstNode(start_pos, end_pos), variable_name_(variable_name) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (variable_name_ == "this") {
       return std::make_shared<json>(*root);
     }
@@ -528,7 +528,7 @@ class PropertyNode : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), property_name_(property_name) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
@@ -558,7 +558,7 @@ class Projection : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
@@ -569,9 +569,9 @@ class Projection : public AstNode {
 
     std::shared_ptr<json> result = std::make_shared<json>();
     for (auto it = root->begin(); it != root->end(); ++it) {
-      context.push_context(&(*it));
+      context.push_data(&(*it));
       result->push_back(*(expr_->evaluate(context)));
-      context.pop_context();
+      context.pop_data();
     }
     return result;
   }
@@ -596,7 +596,7 @@ class Selection : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), type_(type), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
@@ -609,32 +609,32 @@ class Selection : public AstNode {
       bool found = false;
       auto it = root->begin();
       while (it != root->end() && !found) {
-        context.push_context(&(*it));
+        context.push_data(&(*it));
         if (!(found = truthy(expr_->evaluate(context)))) {
           ++it;
         }
-        context.pop_context();
+        context.pop_data();
       }
       return found ? std::make_shared<json>(*it) : nullptr;
     } else if (type_ == SelectType::LAST) {
       bool found = false;
       auto it = root->rbegin();
       while (it != root->rend() && !found) {
-        context.push_context(&(*it));
+        context.push_data(&(*it));
         if (!(found = truthy(expr_->evaluate(context)))) {
           ++it;
         }
-        context.pop_context();
+        context.pop_data();
       }
       return found ? std::make_shared<json>(*it) : nullptr;
     } else {
       std::shared_ptr<json> result = std::make_shared<json>();
       for (auto it = root->begin(); it != root->end(); ++it) {
-        context.push_context(&(*it));
+        context.push_data(&(*it));
         if (truthy(expr_->evaluate(context))) {
           result->push_back(*it);
         }
-        context.pop_context();
+        context.pop_data();
       }
       return result;
     }
@@ -654,7 +654,7 @@ class Indexer : public AstNode {
       AstNode(start_pos, end_pos), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (root == nullptr) {
       CPPEL_THROW(EvaluateError("unexpected null at" + get_start_pos()));
     }
@@ -747,16 +747,16 @@ class CompoundExpression : public AstNode {
       AstNode(start_pos, end_pos), exprs_(exprs) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_context();
+    json *root = context.get_active_data();
     if (root == nullptr) {
       CPPEL_THROW(EvaluateError("unexpected null at " + get_start_pos()));
     }
 
     std::shared_ptr<json> result = std::make_shared<json>(*root);
     for (auto expr : exprs_) {
-      context.push_context(result.get());
+      context.push_data(result.get());
       result = expr->evaluate(context);
-      context.pop_context();
+      context.pop_data();
     }
 
     return result;
