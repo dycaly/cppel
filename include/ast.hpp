@@ -483,11 +483,11 @@ class VariableNode : public AstNode {
       AstNode(start_pos, end_pos), variable_name_(variable_name) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (variable_name_ == "this") {
       return std::make_shared<json>(*root);
     }
-    CPPEL_THROW(EvaluateError("unexpected variable at" + get_start_pos()));
+    CPPEL_THROW(EvaluateError("unexpected variable at" + std::to_string(get_start_pos())));
   }
 
  private:
@@ -528,12 +528,12 @@ class PropertyNode : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), property_name_(property_name) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
       } else {
-        CPPEL_THROW(EvaluateError("unexpected null at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
     }
 
@@ -558,12 +558,12 @@ class Projection : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
       } else {
-        CPPEL_THROW(EvaluateError("unexpected null at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
     }
 
@@ -596,12 +596,12 @@ class Selection : public AstNode {
       AstNode(start_pos, end_pos), null_safe_(null_safe), type_(type), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (root == nullptr) {
       if (null_safe_) {
         return nullptr;
       } else {
-        CPPEL_THROW(EvaluateError("unexpected null at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
     }
 
@@ -654,22 +654,22 @@ class Indexer : public AstNode {
       AstNode(start_pos, end_pos), expr_(expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (root == nullptr) {
-      CPPEL_THROW(EvaluateError("unexpected null at" + get_start_pos()));
+      CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
     }
     std::shared_ptr<json> index_value = expr_->evaluate(context);
     if (root->is_string()) {
       std::string str = root->get<std::string>();
       int index = index_value->get<int>();
       if (index >= root->size()) {
-        CPPEL_THROW(EvaluateError("string out of index at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("string out of index at" + std::to_string(get_start_pos())));
       }
       return std::make_shared<json>(str.substr(index, 1));
     } else if (root->is_array()) {
       int index = index_value->get<int>();
       if (index >= root->size()) {
-        CPPEL_THROW(EvaluateError("array out of index at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("array out of index at" + std::to_string(get_start_pos())));
       }
       return std::make_shared<json>(root->at(index));
     } else if (root->is_object()) {
@@ -677,10 +677,10 @@ class Indexer : public AstNode {
       if (root->contains(key)) {
         return std::make_shared<json>(root->at(key));
       } else {
-        CPPEL_THROW(EvaluateError("unexpected indexer at" + get_start_pos()));
+        CPPEL_THROW(EvaluateError("unexpected indexer at" + std::to_string(get_start_pos())));
       }
     }
-    CPPEL_THROW(EvaluateError("can't be index at" + get_start_pos()));
+    CPPEL_THROW(EvaluateError("can't be index at" + std::to_string(get_start_pos())));
   }
 
  private:
@@ -747,9 +747,9 @@ class CompoundExpression : public AstNode {
       AstNode(start_pos, end_pos), exprs_(exprs) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    json *root = context.get_active_data();
+    const json *root = context.get_active_data();
     if (root == nullptr) {
-      CPPEL_THROW(EvaluateError("unexpected null at " + get_start_pos()));
+      CPPEL_THROW(EvaluateError("unexpected null at " + std::to_string(get_start_pos())));
     }
 
     std::shared_ptr<json> result = std::make_shared<json>(*root);

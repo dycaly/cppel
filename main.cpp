@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include "include/expression.hpp"
 #include "include/parser.hpp"
@@ -13,8 +14,8 @@ int main() {
   json data = "{\"names\": \"Jack,Rose\"}"_json;
   cppel::EvaluationContext evaluation_context(data);
 
-  json rlt = expr.evaluate(evaluation_context);
-  std::cout << rlt.dump() << std::endl;
+  std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
+  std::cout << rlt->dump() << std::endl;
 
   return 0;
 }

@@ -13,13 +13,13 @@ class Expression {
  public:
   Expression(const std::shared_ptr<AstNode> root) : root_(root) {}
 
-  json evaluate(json &data) {
+  std::shared_ptr<json> evaluate(const json &data) {
     EvaluationContext context = EvaluationContext(data);
     return evaluate(context);
   }
 
-  json evaluate(EvaluationContext &context) {
-    return *(root_->evaluate(context));
+  std::shared_ptr<json> evaluate(EvaluationContext &context) {
+    return root_->evaluate(context);
   }
 
  private:

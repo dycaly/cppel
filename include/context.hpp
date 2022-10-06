@@ -15,21 +15,21 @@ using Function = std::function<std::shared_ptr<json>(Arguments &args)>;
 
 class EvaluationContext {
  public:
-  EvaluationContext(json &root_data) : root_data_(&root_data) {}
+  EvaluationContext(const json &root_data) : root_data_(&root_data) {}
 
-  json *get_active_data() {
+  const json *get_active_data() {
     if (data_deque_.empty()) {
       return root_data_;
     }
     return data_deque_.back();
   }
 
-  void push_data(json *data) {
+  void push_data(const json *data) {
     data_deque_.push_back(data);
   }
 
-  json *pop_data() {
-    json *data = data_deque_.back();
+  const json *pop_data() {
+    const json *data = data_deque_.back();
     data_deque_.pop_back();
     return data;
   }
@@ -48,8 +48,8 @@ class EvaluationContext {
   }
 
  private:
-  json *root_data_;
-  std::deque<json *> data_deque_;
+  const json *root_data_;
+  std::deque<const json *> data_deque_;
 
   std::map<std::pair<std::string, int>, Function> functions_ = {
       {std::make_pair("join", 2), PresetFunction::join},

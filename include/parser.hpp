@@ -69,10 +69,10 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> rh_expr = eat_logical_and_expression();
       if (!expr) {
-        CPPEL_THROW(ParseError("unexpected null before " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null before " + std::to_string(token.start_pos_)));
       }
       if (!rh_expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       expr = std::make_shared<OpOr>(token.start_pos_, token.end_pos_, expr, rh_expr);
     }
@@ -89,10 +89,10 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> rh_expr = eat_relation_expression();
       if (!expr) {
-        CPPEL_THROW(ParseError("unexpected null before " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null before " + std::to_string(token.start_pos_)));
       }
       if (!rh_expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       expr = std::make_shared<OpAnd>(token.start_pos_, token.end_pos_, expr, rh_expr);
     }
@@ -135,7 +135,7 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> rh_expr = eat_product_expression();
       if (!rh_expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       if (token.kind_ == Token::Kind::PLUS) {
         expr = std::make_shared<OpPlus>(token.start_pos_, token.end_pos_, expr, rh_expr);
@@ -157,7 +157,7 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> rh_expr = eat_product_expression();
       if (!rh_expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       if (token.kind_ == Token::Kind::STAR) {
         expr = std::make_shared<OpMultiply>(token.start_pos_, token.end_pos_, expr, rh_expr);
@@ -180,7 +180,7 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> rh_expr = eat_unary_expression();
       if (!rh_expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       return std::make_shared<OpPower>(token.start_pos_, token.end_pos_, expr, rh_expr);
     }
@@ -197,7 +197,7 @@ class InternalParser {
       Token token = next_token();
       std::shared_ptr<AstNode> expr = eat_unary_expression();
       if (!expr) {
-        CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       if (token.kind_ == Token::Kind::PLUS) {
         return std::make_shared<OpPlus>(token.start_pos_, token.end_pos_, expr, nullptr);
@@ -327,7 +327,7 @@ class InternalParser {
     Token token = next_token();
     std::shared_ptr<AstNode> expr = eat_expression();
     if (!expr) {
-      CPPEL_THROW(ParseError("unexpected null after " + token.start_pos_));
+      CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
     }
     eat_token(Token::Kind::RPAREN);
     push_node(expr);
@@ -357,7 +357,7 @@ class InternalParser {
     }
     next_token();
     if (peek_token().kind_ != Token::Kind::IDENTIFIER) {
-      CPPEL_THROW(ParseError("unexpected token at " + peek_token().start_pos_));
+      CPPEL_THROW(ParseError("unexpected token at " + std::to_string(peek_token().start_pos_)));
     }
 
     Token token = next_token();
@@ -397,7 +397,7 @@ class InternalParser {
       next_token();
       Token token = peek_token();
       if (token.kind_ == Token::Kind::END) {
-        CPPEL_THROW(ParseError("unexpected end at" + token.start_pos_));
+        CPPEL_THROW(ParseError("unexpected end at" + std::to_string(token.start_pos_)));
       }
       if (token.kind_ != Token::Kind::RPAREN) {
         args.push_back(eat_expression());
@@ -413,7 +413,7 @@ class InternalParser {
     Token token = next_token();
     std::shared_ptr<AstNode> expr = eat_expression();
     if (!expr) {
-      CPPEL_THROW(ParseError("unexpected null after " + token.end_pos_));
+      CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.end_pos_)));
     }
     eat_token(Token::Kind::RSQUARE);
     push_node(std::make_shared<Projection>(token.start_pos_, token.end_pos_, safe_navi, expr));
@@ -430,7 +430,7 @@ class InternalParser {
     Token token = next_token();
     std::shared_ptr<AstNode> expr = eat_expression();
     if (!expr) {
-      CPPEL_THROW(ParseError("unexpected null after " + token.end_pos_));
+      CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.end_pos_)));
     }
     eat_token(Token::Kind::RSQUARE);
     if (token.kind_ == Token::Kind::SELECT_FIRST) {
@@ -463,7 +463,7 @@ class InternalParser {
     Token token = next_token();
     std::shared_ptr<AstNode> expr = eat_expression();
     if (!expr) {
-      CPPEL_THROW(ParseError("unexpected null after " + token.end_pos_));
+      CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.end_pos_)));
     }
     eat_token(Token::Kind::RSQUARE);
     push_node(std::make_shared<Indexer>(token.start_pos_, token.end_pos_, expr));
@@ -512,7 +512,7 @@ class InternalParser {
         Token close_token = eat_token(Token::Kind::RCURLY);
         push_node(std::make_shared<InlineMap>(token.start_pos_, close_token.end_pos_, exprs));
       } else {
-        CPPEL_THROW(ParseError("unexpected token after " + peek_token().start_pos_));
+        CPPEL_THROW(ParseError("unexpected token after " + std::to_string(peek_token().start_pos_)));
       }
     }
     return true;
@@ -545,7 +545,7 @@ class InternalParser {
     if (maybe_eat_property(safe_navi) || maybe_eat_projection(safe_navi) || maybe_eat_selection(safe_navi)) {
       return pop_node();
     }
-    CPPEL_THROW(ParseError("unexpected token after " + peek_token().start_pos_));
+    CPPEL_THROW(ParseError("unexpected token after " + std::to_string(peek_token().start_pos_)));
   }
 
   /**
@@ -577,7 +577,7 @@ class InternalParser {
   Token eat_token(const Token::Kind expected_kind) {
     Token token = next_token();
     if (token.kind_ != expected_kind) {
-      CPPEL_THROW(ParseError("expect can't be match at " + token.start_pos_));
+      CPPEL_THROW(ParseError("expect can't be match at " + std::to_string(token.start_pos_)));
     }
     return token;
   }

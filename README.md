@@ -7,7 +7,7 @@ a simple c++ implementation of spring expression
 #include <nlohmann/json.hpp>
 #include "include/expression.hpp"
 #include "include/parser.hpp"
-
+  
 using json = nlohmann::json;
 
 std::string expr_str = "#split(names, ',')";
@@ -17,6 +17,6 @@ cppel::Expression expr = parser.parse(expr_str);
 json data = "{\"names\": \"Jack,Rose\"}"_json;
 cppel::EvaluationContext evaluation_context(data);
 
-json rlt = expr.evaluate(evaluation_context);
-std::cout << rlt.dump() << std::endl;
+std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
+std::cout << rlt->dump() << std::endl;
 ```
