@@ -200,9 +200,9 @@ class InternalParser {
         CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
       if (token.kind_ == Token::Kind::PLUS) {
-        return std::make_shared<OpPlus>(token.start_pos_, token.end_pos_, expr, nullptr);
+        return std::make_shared<OpPlus>(token.start_pos_, token.end_pos_, nullptr, expr);
       } else if (token.kind_ == Token::Kind::MINUS) {
-        return std::make_shared<OpMinus>(token.start_pos_, token.end_pos_, expr, nullptr);
+        return std::make_shared<OpMinus>(token.start_pos_, token.end_pos_, nullptr, expr);
       } else {
         return std::make_shared<OpNot>(token.start_pos_, token.end_pos_, expr);
       }

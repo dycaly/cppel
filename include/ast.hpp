@@ -309,8 +309,8 @@ class OpPlus : public AstNode {
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
+    std::shared_ptr<json> lh_value = lh_expr_ ? lh_expr_->evaluate(context) : std::make_shared<json>(0);
+    std::shared_ptr<json> rh_value = rh_expr_ ? rh_expr_->evaluate(context) : std::make_shared<json>(0);
     if (lh_value->is_string() && rh_value->is_string()) {
       return std::make_shared<json>(lh_value->get<std::string>() + rh_value->get<std::string>());
     } else if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
@@ -334,8 +334,8 @@ class OpMinus : public AstNode {
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
   virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
+    std::shared_ptr<json> lh_value = lh_expr_ ? lh_expr_->evaluate(context) : std::make_shared<json>(0);
+    std::shared_ptr<json> rh_value = rh_expr_ ? rh_expr_->evaluate(context) : std::make_shared<json>(0);
     if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
       return std::make_shared<json>(lh_value->get<int>() - rh_value->get<int>());
     } else {
