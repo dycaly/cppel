@@ -155,7 +155,7 @@ class InternalParser {
     while (peek_token().kind_ == Token::Kind::STAR || peek_token().kind_ == Token::Kind::DIV
         || peek_token().kind_ == Token::Kind::MOD) {
       Token token = next_token();
-      std::shared_ptr<AstNode> rh_expr = eat_product_expression();
+      std::shared_ptr<AstNode> rh_expr = eat_power_expression();
       if (!rh_expr) {
         CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.start_pos_)));
       }
