@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <nlohmann/json.hpp>
+#include "nlohmann/json.hpp"
 #include "ast.hpp"
 #include "context.hpp"
 

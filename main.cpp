@@ -1,8 +1,8 @@
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include "include/expression.hpp"
-#include "include/parser.hpp"
+#include <cppel/expression.hpp>
+#include <cppel/parser.hpp>
 
 int main() {
   using json = nlohmann::json;
