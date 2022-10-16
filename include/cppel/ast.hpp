@@ -22,8 +22,8 @@ class AstNode {
       : start_pos_(start_pos), end_pos_(end_pos) {}
   virtual ~AstNode() {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return nullptr;
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_empty_;
   }
 
   size_t get_start_pos() {
@@ -38,15 +38,24 @@ class AstNode {
   size_t start_pos_;
   size_t end_pos_;
   std::vector<std::shared_ptr<AstNode>> children_;
+
+ protected:
+  static const json value_empty_;
+  static const json value_true_;
+  static const json value_false_;
 };
+
+const json AstNode::value_empty_ = json();
+const json AstNode::value_true_ = json(true);
+const json AstNode::value_false_ = json(false);
 
 class LiteralNone : public AstNode {
  public:
   LiteralNone(const size_t start_pos, const size_t end_pos)
       : AstNode(start_pos, end_pos) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return nullptr;
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_empty_;
   }
 };
 
@@ -55,12 +64,12 @@ class LiteralBool : public AstNode {
   LiteralBool(const size_t start_pos, const size_t end_pos, const bool value)
       : AstNode(start_pos, end_pos), value_(value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return std::make_shared<json>(value_);
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_;
   }
 
  private:
-  bool value_;
+  json value_;
 };
 
 class LiteralInt : public AstNode {
@@ -68,12 +77,12 @@ class LiteralInt : public AstNode {
   LiteralInt(const size_t start_pos, const size_t end_pos, const int value)
       : AstNode(start_pos, end_pos), value_(value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return std::make_shared<json>(value_);
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_;
   }
 
  private:
-  int value_;
+  json value_;
 };
 
 class LiteralFloat : public AstNode {
@@ -81,12 +90,12 @@ class LiteralFloat : public AstNode {
   LiteralFloat(const size_t start_pos, const size_t end_pos, const float value)
       : AstNode(start_pos, end_pos), value_(value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return std::make_shared<json>(value_);
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_;
   }
 
  private:
-  float value_;
+  json value_;
 };
 
 class LiteralString : public AstNode {
@@ -94,12 +103,12 @@ class LiteralString : public AstNode {
   LiteralString(const size_t start_pos, const size_t end_pos, const std::string &value)
       : AstNode(start_pos, end_pos), value_(value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return std::make_shared<json>(value_);
+  virtual const json *evaluate(EvaluationContext &context) {
+    return &value_;
   }
 
  private:
-  std::string value_;
+  json value_;
 };
 
 class Assign : public AstNode {
@@ -123,12 +132,12 @@ class Elvis : public AstNode {
         const std::shared_ptr<AstNode> else_value) :
       AstNode(start_pos, end_pos), if_value_(if_value), else_value_(else_value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> value = if_value_->evaluate(context);
-    if (!value) {
-      value = else_value_->evaluate(context);
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json *first = if_value_->evaluate(context);
+    if (first && !first->is_null()) {
+      return first;
     }
-    return value;
+    return else_value_->evaluate(context);
   }
 
  private:
@@ -148,7 +157,7 @@ class Ternary : public AstNode {
       if_true_value_(if_true_value),
       if_false_value_(if_false_value) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     return truthy(condition_->evaluate(context)) ?
            if_true_value_->evaluate(context) :
            if_false_value_->evaluate(context);
@@ -160,6 +169,22 @@ class Ternary : public AstNode {
   std::shared_ptr<AstNode> if_false_value_;
 };
 
+class OpNot : public AstNode {
+ public:
+  OpNot(const size_t start_pos,
+        const size_t end_pos,
+        const std::shared_ptr<AstNode> expr) :
+      AstNode(start_pos, end_pos), expr_(expr) {}
+
+  virtual const json *evaluate(EvaluationContext &context) {
+    return truthy(expr_->evaluate(context)) ? &value_false_ : &value_true_;
+  }
+
+ private:
+  std::shared_ptr<AstNode> expr_;
+};
+
+
 class OpOr : public AstNode {
  public:
   OpOr(const size_t start_pos,
@@ -168,9 +193,9 @@ class OpOr : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     bool value = truthy(lh_expr_->evaluate(context)) || truthy(rh_expr_->evaluate(context));
-    return std::make_shared<json>(value);
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -186,9 +211,9 @@ class OpAnd : public AstNode {
         const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     bool value = truthy(lh_expr_->evaluate(context)) && truthy(rh_expr_->evaluate(context));
-    return std::make_shared<json>(value);
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -204,9 +229,9 @@ class OpGT : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) > *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) > *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -222,9 +247,9 @@ class OpGE : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) >= *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) >= *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -240,9 +265,9 @@ class OpLT : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) < *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) < *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -258,9 +283,9 @@ class OpLE : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) <= *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) <= *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -276,9 +301,9 @@ class OpEQ : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) == *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) == *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -294,9 +319,9 @@ class OpNE : public AstNode {
        const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    bool value = *(lh_expr_->evaluate(context).get()) != *(rh_expr_->evaluate(context).get());
-    return std::make_shared<json>(value);
+  virtual const json *evaluate(EvaluationContext &context) {
+    bool value = *(lh_expr_->evaluate(context)) != *(rh_expr_->evaluate(context));
+    return value ? &value_true_ : &value_false_;
   }
 
  private:
@@ -312,15 +337,15 @@ class OpPlus : public AstNode {
          const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_ ? lh_expr_->evaluate(context) : std::make_shared<json>(0);
-    std::shared_ptr<json> rh_value = rh_expr_ ? rh_expr_->evaluate(context) : std::make_shared<json>(0);
-    if (lh_value->is_string() && rh_value->is_string()) {
-      return std::make_shared<json>(lh_value->get<std::string>() + rh_value->get<std::string>());
-    } else if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
-      return std::make_shared<json>(lh_value->get<int>() + rh_value->get<int>());
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json lh_value = lh_expr_ ? *lh_expr_->evaluate(context) : json(0);
+    const json rh_value = rh_expr_ ? *rh_expr_->evaluate(context) : json(0);
+    if (lh_value.is_string() && rh_value.is_string()) {
+      return context.push_ref(std::make_shared<json>(lh_value.get<std::string>() + rh_value.get<std::string>()));
+    } else if (lh_value.is_number_integer() && rh_value.is_number_integer()) {
+      return context.push_ref(std::make_shared<json>(lh_value.get<int>() + rh_value.get<int>()));
     } else {
-      return std::make_shared<json>(lh_value->get<float>() + rh_value->get<float>());
+      return context.push_ref(std::make_shared<json>(lh_value.get<float>() + rh_value.get<float>()));
     }
   }
 
@@ -337,13 +362,13 @@ class OpMinus : public AstNode {
           const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_ ? lh_expr_->evaluate(context) : std::make_shared<json>(0);
-    std::shared_ptr<json> rh_value = rh_expr_ ? rh_expr_->evaluate(context) : std::make_shared<json>(0);
-    if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
-      return std::make_shared<json>(lh_value->get<int>() - rh_value->get<int>());
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json lh_value = lh_expr_ ? *lh_expr_->evaluate(context) : json(0);
+    const json rh_value = rh_expr_ ? *rh_expr_->evaluate(context) : json(0);
+    if (lh_value.is_number_integer() && rh_value.is_number_integer()) {
+      return context.push_ref(std::make_shared<json>(lh_value.get<int>() - rh_value.get<int>()));
     } else {
-      return std::make_shared<json>(lh_value->get<float>() - rh_value->get<float>());
+      return context.push_ref(std::make_shared<json>(lh_value.get<float>() - rh_value.get<float>()));
     }
   }
 
@@ -360,13 +385,13 @@ class OpMultiply : public AstNode {
              const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json *lh_value = lh_expr_->evaluate(context);
+    const json *rh_value = rh_expr_->evaluate(context);
     if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
-      return std::make_shared<json>(lh_value->get<int>() * rh_value->get<int>());
+      return context.push_ref(std::make_shared<json>(lh_value->get<int>() * rh_value->get<int>()));
     } else {
-      return std::make_shared<json>(lh_value->get<float>() * rh_value->get<float>());
+      return context.push_ref(std::make_shared<json>(lh_value->get<float>() * rh_value->get<float>()));
     }
   }
 
@@ -383,13 +408,13 @@ class OpDivide : public AstNode {
            const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json *lh_value = lh_expr_->evaluate(context);
+    const json *rh_value = rh_expr_->evaluate(context);
     if (lh_value->is_number_integer() && rh_value->is_number_integer()) {
-      return std::make_shared<json>(lh_value->get<int>() / rh_value->get<int>());
+      return context.push_ref(std::make_shared<json>(lh_value->get<int>() / rh_value->get<int>()));
     } else {
-      return std::make_shared<json>(lh_value->get<float>() / rh_value->get<float>());
+      return context.push_ref(std::make_shared<json>(lh_value->get<float>() / rh_value->get<float>()));
     }
   }
 
@@ -406,10 +431,10 @@ class OpModulus : public AstNode {
             const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
-    return std::make_shared<json>(lh_value->get<int>() % rh_value->get<int>());
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json* lh_value = lh_expr_->evaluate(context);
+    const json* rh_value = rh_expr_->evaluate(context);
+    return context.push_ref(std::make_shared<json>(lh_value->get<int>() % rh_value->get<int>()));
   }
 
  private:
@@ -425,34 +450,19 @@ class OpPower : public AstNode {
           const std::shared_ptr<AstNode> rh_expr) :
       AstNode(start_pos, end_pos), lh_expr_(lh_expr), rh_expr_(rh_expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::shared_ptr<json> lh_value = lh_expr_->evaluate(context);
-    std::shared_ptr<json> rh_value = rh_expr_->evaluate(context);
+  virtual const json *evaluate(EvaluationContext &context) {
+    const json* lh_value = lh_expr_->evaluate(context);
+    const json* rh_value = rh_expr_->evaluate(context);
     if (lh_value->is_number_integer() && rh_value->is_number_integer() && rh_value->get<int>() > 0) {
-      return std::make_shared<json>(static_cast<int>(std::pow(lh_value->get<int>(), rh_value->get<int>())));
+      return context.push_ref(std::make_shared<json>(static_cast<int>(std::pow(lh_value->get<int>(), rh_value->get<int>()))));
     } else {
-      return std::make_shared<json>(std::pow(lh_value->get<float>(), rh_value->get<float>()));
+      return context.push_ref(std::make_shared<json>(std::pow(lh_value->get<float>(), rh_value->get<float>())));
     }
   }
 
  private:
   std::shared_ptr<AstNode> lh_expr_;
   std::shared_ptr<AstNode> rh_expr_;
-};
-
-class OpNot : public AstNode {
- public:
-  OpNot(const size_t start_pos,
-        const size_t end_pos,
-        const std::shared_ptr<AstNode> expr) :
-      AstNode(start_pos, end_pos), expr_(expr) {}
-
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return std::make_shared<json>(!truthy(expr_->evaluate(context)));
-  }
-
- private:
-  std::shared_ptr<AstNode> expr_;
 };
 
 class FunctionNode : public AstNode {
@@ -463,15 +473,15 @@ class FunctionNode : public AstNode {
                const std::vector<std::shared_ptr<AstNode>> exprs) :
       AstNode(start_pos, end_pos), function_name_(function_name), exprs_(exprs) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
 
     Function function = context.get_function(std::make_pair(function_name_, exprs_.size()));
 
-    std::vector<std::shared_ptr<json>> args;
+    std::vector<const json*> args;
     for (auto expr : exprs_) {
       args.push_back(expr->evaluate(context));
     }
-    return function(args);
+    return context.push_ref(function(args));
   }
 
  private:
@@ -486,10 +496,10 @@ class VariableNode : public AstNode {
                const std::string &variable_name) :
       AstNode(start_pos, end_pos), variable_name_(variable_name) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
     if (variable_name_ == "this") {
-      return std::make_shared<json>(*root);
+      return root;
     }
     CPPEL_THROW(EvaluateError("unexpected variable at" + std::to_string(get_start_pos())));
   }
@@ -507,14 +517,14 @@ class MethodNode : public AstNode {
              const std::vector<std::shared_ptr<AstNode>> exprs) :
       AstNode(start_pos, end_pos), null_safe_(null_safe), method_name_(method_name), exprs_(exprs) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    std::vector<std::shared_ptr<json>> args;
+  virtual const json *evaluate(EvaluationContext &context) {
+    std::vector<const json*> args;
     for (auto expr : exprs_) {
       args.push_back(expr->evaluate(context));
     }
     // TODO: Method call
 
-    return std::make_shared<json>();
+    return &value_empty_;
   }
 
  private:
@@ -531,20 +541,20 @@ class PropertyNode : public AstNode {
                const std::string &property_name) :
       AstNode(start_pos, end_pos), null_safe_(null_safe), property_name_(property_name) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       if (null_safe_) {
-        return nullptr;
+        return &value_empty_;
       } else {
         CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
     }
 
     if (root->contains(property_name_)) {
-      return std::make_shared<json>(root->at(property_name_));
+      return &root->at(property_name_);
     } else {
-      return nullptr;
+      return &value_empty_;
     }
   }
 
@@ -561,11 +571,11 @@ class Projection : public AstNode {
              const std::shared_ptr<AstNode> expr) :
       AstNode(start_pos, end_pos), null_safe_(null_safe), expr_(expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       if (null_safe_) {
-        return nullptr;
+        return &value_empty_;
       } else {
         CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
@@ -577,7 +587,7 @@ class Projection : public AstNode {
       result->push_back(*(expr_->evaluate(context)));
       context.pop_data();
     }
-    return result;
+    return context.push_ref(result);
   }
 
  private:
@@ -588,16 +598,16 @@ class Projection : public AstNode {
 class Flat : public AstNode {
  public:
   Flat(const size_t start_pos,
-             const size_t end_pos,
-             const bool null_safe,
-             const std::shared_ptr<AstNode> expr) :
+       const size_t end_pos,
+       const bool null_safe,
+       const std::shared_ptr<AstNode> expr) :
       AstNode(start_pos, end_pos), null_safe_(null_safe), expr_(expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       if (null_safe_) {
-        return nullptr;
+        return &value_empty_;
       } else {
         CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
@@ -606,7 +616,7 @@ class Flat : public AstNode {
     std::shared_ptr<json> result = std::make_shared<json>();
     for (auto it = root->begin(); it != root->end(); ++it) {
       context.push_data(&(*it));
-      std::shared_ptr<json> items = expr_->evaluate(context);
+      const json* items = expr_->evaluate(context);
       if (!items->is_array()) {
         CPPEL_THROW(EvaluateError("flat should do with array" + std::to_string(get_start_pos())));
       }
@@ -615,7 +625,7 @@ class Flat : public AstNode {
       }
       context.pop_data();
     }
-    return result;
+    return context.push_ref(result);
   }
 
  private:
@@ -637,11 +647,11 @@ class Selection : public AstNode {
             const std::shared_ptr<AstNode> expr) :
       AstNode(start_pos, end_pos), null_safe_(null_safe), type_(type), expr_(expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       if (null_safe_) {
-        return nullptr;
+        return &value_empty_;
       } else {
         CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
       }
@@ -657,7 +667,7 @@ class Selection : public AstNode {
         }
         context.pop_data();
       }
-      return found ? std::make_shared<json>(*it) : nullptr;
+      return found ? &(*it) : &value_empty_;
     } else if (type_ == SelectType::LAST) {
       bool found = false;
       auto it = root->rbegin();
@@ -668,7 +678,7 @@ class Selection : public AstNode {
         }
         context.pop_data();
       }
-      return found ? std::make_shared<json>(*it) : nullptr;
+      return found ? &(*it) : &value_empty_;
     } else {
       std::shared_ptr<json> result = std::make_shared<json>();
       for (auto it = root->begin(); it != root->end(); ++it) {
@@ -678,7 +688,7 @@ class Selection : public AstNode {
         }
         context.pop_data();
       }
-      return result;
+      return context.push_ref(result);
     }
   }
 
@@ -695,29 +705,29 @@ class Indexer : public AstNode {
           const std::shared_ptr<AstNode> expr) :
       AstNode(start_pos, end_pos), expr_(expr) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
     }
-    std::shared_ptr<json> index_value = expr_->evaluate(context);
+    const json* index_value = expr_->evaluate(context);
     if (root->is_string()) {
       std::string str = root->get<std::string>();
       int index = index_value->get<int>();
       if (index >= root->size()) {
         CPPEL_THROW(EvaluateError("string out of index at" + std::to_string(get_start_pos())));
       }
-      return std::make_shared<json>(str.substr(index, 1));
+      return context.push_ref(std::make_shared<json>(str.substr(index, 1)));
     } else if (root->is_array()) {
       int index = index_value->get<int>();
       if (index >= root->size()) {
         CPPEL_THROW(EvaluateError("array out of index at" + std::to_string(get_start_pos())));
       }
-      return std::make_shared<json>(root->at(index));
+      return &root->at(index);
     } else if (root->is_object()) {
       std::string key = index_value->get<std::string>();
       if (root->contains(key)) {
-        return std::make_shared<json>(root->at(key));
+        return &root->at(key);
       } else {
         CPPEL_THROW(EvaluateError("unexpected indexer at" + std::to_string(get_start_pos())));
       }
@@ -740,12 +750,12 @@ class InlineList : public AstNode {
              const std::vector<std::shared_ptr<AstNode>> exprs) :
       AstNode(start_pos, end_pos), exprs_(exprs) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     std::shared_ptr<json> array = std::make_shared<json>();
     for (auto expr : exprs_) {
-      array->push_back(*(expr->evaluate(context).get()));
+      array->push_back(*(expr->evaluate(context)));
     }
-    return array;
+    return context.push_ref(array);
   }
 
  private:
@@ -763,18 +773,18 @@ class InlineMap : public AstNode {
             const std::vector<std::shared_ptr<AstNode>> exprs) :
       AstNode(start_pos, end_pos), exprs_(exprs) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     std::shared_ptr<json> map = std::make_shared<json>();
     for (int i = 0; i < exprs_.size(); i += 2) {
-      std::shared_ptr<json> key = exprs_[i]->evaluate(context);
-      std::shared_ptr<json> value = exprs_[i + 1]->evaluate(context);
+      const json* key = exprs_[i]->evaluate(context);
+      const json* value = exprs_[i + 1]->evaluate(context);
       if (key->is_number_integer()) {
-        map->at(key->get<int>()) = *(value.get());
+        map->at(key->get<int>()) = *value;
       } else {
-        map->at(key->get<std::string>()) = *(value.get());
+        map->at(key->get<std::string>()) = *value;
       }
     }
-    return map;
+    return context.push_ref(map);
   }
 
  private:
@@ -788,15 +798,15 @@ class CompoundExpression : public AstNode {
                      const std::vector<std::shared_ptr<AstNode>> exprs) :
       AstNode(start_pos, end_pos), exprs_(exprs) {}
 
-  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+  virtual const json *evaluate(EvaluationContext &context) {
     const json *root = context.get_active_data();
-    if (root == nullptr) {
+    if (root->is_null()) {
       CPPEL_THROW(EvaluateError("unexpected null at " + std::to_string(get_start_pos())));
     }
 
-    std::shared_ptr<json> result = std::make_shared<json>(*root);
+    const json* result = root;
     for (auto expr : exprs_) {
-      context.push_data(result.get());
+      context.push_data(result);
       result = expr->evaluate(context);
       context.pop_data();
     }

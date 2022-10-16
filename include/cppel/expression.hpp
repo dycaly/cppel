@@ -17,13 +17,17 @@ class Expression {
  public:
   Expression(const std::shared_ptr<AstNode> root) : root_(root) {}
 
-  std::shared_ptr<json> evaluate(const json &data) {
+  json evaluate(const json &data) {
     EvaluationContext context = EvaluationContext(data);
-    return evaluate(context);
+    json rlt = *root_->evaluate(context);
+    context.clear_ref();
+    return rlt;
   }
 
-  std::shared_ptr<json> evaluate(EvaluationContext &context) {
-    return root_->evaluate(context);
+  json evaluate(EvaluationContext &context) {
+    json rlt = *root_->evaluate(context);
+    context.clear_ref();
+    return rlt;
   }
 
  private:

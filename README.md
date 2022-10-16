@@ -18,6 +18,6 @@ cppel::Expression expr = parser.parse(expr_str);
 json data = "{\"names\": \"Jack,Rose\"}"_json;
 cppel::EvaluationContext evaluation_context(data);
 
-std::shared_ptr<json> rlt = expr.evaluate(evaluation_context);
-std::cout << rlt->dump() << std::endl;
+json rlt = expr.evaluate(evaluation_context);
+std::cout << rlt.dump() << std::endl;
 ```

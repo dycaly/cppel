@@ -14,7 +14,7 @@ using json = nlohmann::json;
 
 class PresetFunction {
  public:
-  static std::shared_ptr<json> join(std::vector<std::shared_ptr<json>> &args) {
+  static std::shared_ptr<json> join(std::vector<const json *> &args) {
     auto list = args[0];
     std::string joiner = args[1]->get<std::string>();
     std::stringstream ss;
@@ -28,7 +28,7 @@ class PresetFunction {
     return std::make_shared<json>(ss.str());
   }
 
-  static std::shared_ptr<json> split(std::vector<std::shared_ptr<json>> &args) {
+  static std::shared_ptr<json> split(std::vector<const json *> &args) {
     std::string source_str = args[0]->get<std::string>();
     std::string splitter = args[1]->get<std::string>();
     auto result = std::make_shared<json>();

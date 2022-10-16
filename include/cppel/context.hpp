@@ -14,7 +14,7 @@
 namespace cppel {
 using json = nlohmann::json;
 
-using Arguments = std::vector<std::shared_ptr<json>>;
+using Arguments = std::vector<const json *>;
 using Function = std::function<std::shared_ptr<json>(Arguments &args)>;
 
 class EvaluationContext {
@@ -38,6 +38,15 @@ class EvaluationContext {
     return data;
   }
 
+  const json *push_ref(std::shared_ptr<const json> data) {
+    ref_queue_.push_back(data);
+    return data.get();
+  }
+
+  void clear_ref() {
+   ref_queue_.clear();
+  }
+
   void add_function(const std::pair<std::string, int> &name_args_count, const Function function) {
     functions_[name_args_count] = function;
   }
@@ -47,12 +56,13 @@ class EvaluationContext {
       return functions_[name_args_count];
     }
     CPPEL_THROW(EvaluateError(
-        "function [" + name_args_count.first + "] with args_count " + std::to_string(name_args_count.second)
-            + " not exits"));
+                    "function [" + name_args_count.first + "] with args_count " + std::to_string(name_args_count.second)
+                        + " not exits"));
   }
 
  private:
   const json *root_data_;
+  std::deque<std::shared_ptr<const json>> ref_queue_;
   std::deque<const json *> data_deque_;
 
   std::map<std::pair<std::string, int>, Function> functions_ = {

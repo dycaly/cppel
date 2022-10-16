@@ -10,7 +10,7 @@
 namespace cppel {
 using json = nlohmann::json;
 
-static bool truthy(const std::shared_ptr<json> data) {
+static bool truthy(const json *data) {
   if (!data) {
     return false;
   } else if (data->is_boolean()) {
