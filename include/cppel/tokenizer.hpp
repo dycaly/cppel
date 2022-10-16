@@ -49,6 +49,7 @@ class Token {
     SELECT_FIRST,    // ^[
     SELECT_LAST,     // $[
     PROJECT,         // ![
+    FLAT,            // -[
     ELVIS,           // ?:
     SAFE_NAVI,       // ?.
     ASSIGN,          // =
@@ -139,7 +140,12 @@ class Tokenizer {
             break;
           case '+':enqueue_token(Token::Kind::PLUS, 1);
             break;
-          case '-':enqueue_token(Token::Kind::MINUS, 1);
+          case '-':
+            if (expr_chars_[pos_ + 1] == '[') {
+              enqueue_token(Token::Kind::FLAT, 2);
+            } else {
+              enqueue_token(Token::Kind::MINUS, 1);
+            }
             break;
           case '*':enqueue_token(Token::Kind::STAR, 1);
             break;

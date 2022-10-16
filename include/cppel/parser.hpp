@@ -263,6 +263,9 @@ class InternalParser {
     if (maybe_eat_projection(false)) {
       return pop_node();
     }
+    if (maybe_eat_flat(false)) {
+      return pop_node();
+    }
     if (maybe_eat_selection(false)) {
       return pop_node();
     }
@@ -424,6 +427,21 @@ class InternalParser {
     return true;
   }
 
+  bool maybe_eat_flat(bool safe_navi) {
+    if (peek_token().kind_ != Token::Kind::FLAT) {
+      return false;
+    }
+
+    Token token = next_token();
+    std::shared_ptr<AstNode> expr = eat_expression();
+    if (!expr) {
+      CPPEL_THROW(ParseError("unexpected null after " + std::to_string(token.end_pos_)));
+    }
+    eat_token(Token::Kind::RSQUARE);
+    push_node(std::make_shared<Flat>(token.start_pos_, token.end_pos_, safe_navi, expr));
+    return true;
+  }
+
   bool maybe_eat_selection(bool safe_navi) {
     Token &pt = peek_token();
     if (pt.kind_ != Token::Kind::SELECT_FIRST && pt.kind_ != Token::Kind::SELECT_LAST
@@ -546,7 +564,7 @@ class InternalParser {
   std::shared_ptr<AstNode> eat_dotted_node() {
     Token token = next_token();
     bool safe_navi = token.kind_ == Token::Kind::SAFE_NAVI;
-    if (maybe_eat_property(safe_navi) || maybe_eat_projection(safe_navi) || maybe_eat_selection(safe_navi)) {
+    if (maybe_eat_property(safe_navi) || maybe_eat_projection(safe_navi) || maybe_eat_selection(safe_navi) || maybe_eat_flat(safe_navi)) {
       return pop_node();
     }
     CPPEL_THROW(ParseError("unexpected token after " + std::to_string(peek_token().start_pos_)));

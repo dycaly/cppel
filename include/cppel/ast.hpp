@@ -585,6 +585,44 @@ class Projection : public AstNode {
   std::shared_ptr<AstNode> expr_;
 };
 
+class Flat : public AstNode {
+ public:
+  Flat(const size_t start_pos,
+             const size_t end_pos,
+             const bool null_safe,
+             const std::shared_ptr<AstNode> expr) :
+      AstNode(start_pos, end_pos), null_safe_(null_safe), expr_(expr) {}
+
+  virtual std::shared_ptr<json> evaluate(EvaluationContext &context) {
+    const json *root = context.get_active_data();
+    if (root == nullptr) {
+      if (null_safe_) {
+        return nullptr;
+      } else {
+        CPPEL_THROW(EvaluateError("unexpected null at" + std::to_string(get_start_pos())));
+      }
+    }
+
+    std::shared_ptr<json> result = std::make_shared<json>();
+    for (auto it = root->begin(); it != root->end(); ++it) {
+      context.push_data(&(*it));
+      std::shared_ptr<json> items = expr_->evaluate(context);
+      if (!items->is_array()) {
+        CPPEL_THROW(EvaluateError("flat should do with array" + std::to_string(get_start_pos())));
+      }
+      for (auto sub_it = items->begin(); sub_it != items->end(); ++sub_it) {
+        result->push_back(*sub_it);
+      }
+      context.pop_data();
+    }
+    return result;
+  }
+
+ private:
+  bool null_safe_;
+  std::shared_ptr<AstNode> expr_;
+};
+
 class Selection : public AstNode {
  public:
   enum class SelectType {
