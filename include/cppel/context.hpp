@@ -21,6 +21,10 @@ class EvaluationContext {
  public:
   EvaluationContext(const json &root_data) : root_data_(&root_data) {}
 
+  const json *get_root_data() {
+    return root_data_;
+  }
+
   const json *get_active_data() {
     if (data_deque_.empty()) {
       return root_data_;
@@ -44,7 +48,7 @@ class EvaluationContext {
   }
 
   void clear_ref() {
-   ref_queue_.clear();
+    ref_queue_.clear();
   }
 
   void add_function(const std::pair<std::string, int> &name_args_count, const Function function) {

@@ -497,9 +497,11 @@ class VariableNode : public AstNode {
       AstNode(start_pos, end_pos), variable_name_(variable_name) {}
 
   virtual const json *evaluate(EvaluationContext &context) {
-    const json *root = context.get_active_data();
+    if (variable_name_ == "root") {
+      return context.get_root_data();
+    }
     if (variable_name_ == "this") {
-      return root;
+      return context.get_active_data();
     }
     CPPEL_THROW(EvaluateError("unexpected variable at" + std::to_string(get_start_pos())));
   }
